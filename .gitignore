@@ -1,0 +1,22 @@
+# Local and temporary files
+*.tmp
+*.temp
+*.bak
+~$*
+*.log
+
+# Local tooling
+.vscode/
+.idea/
+__pycache__/
+*.py[cod]
+
+# Local/private data
+/private/
+/local/
+/secrets/
+
+# Generated build outputs
+/build/
+/dist/
+*.exe
