@@ -1,245 +1,163 @@
-# SAP MD04 MRP Run Automation
+# SAP MD04 MRP Date Automation
 
-Excel VBA automation for retrieving selected MRP dates from SAP and writing the results back to an Excel input/output table.
+Excel VBA and SAP GUI Scripting portfolio project for batch extraction of selected MRP dates into an Excel tracking sheet.
 
-> Portfolio project demonstrating Excel VBA, SAP GUI Scripting, batch processing, and procurement/planning process automation.
+> Portfolio project for SAP procurement, materials planning, and business-process automation roles.
 
-## Project overview
+## Repository status
 
-The application uses Excel as a lightweight control panel for a repetitive SAP planning task. A user supplies material numbers and MRP areas in Excel. The macro then:
+The current public repository is documentation-only. It contains:
 
-1. Connects to an existing SAP GUI session.
-2. Runs transaction MD03 for each material and MRP area.
-3. Opens transaction MD04 for the material.
-4. Applies the recorded SAP list filter.
-5. Searches the visible MRP table for an element containing PLA.OR.
-6. Captures the first nonblank date associated with that element.
-7. Writes the result to the Release Date column in Excel.
+- README.md
+- APPLICATION_ANALYSIS.md
 
-If a qualifying date is not found, the macro writes Not Found.
+The original macro-enabled workbook, exported VBA modules, screenshots, and operational data are intentionally not published here. Cloning the repository alone does not provide a runnable application.
 
-The tool addresses the manual effort involved in opening SAP transactions, entering the same material data repeatedly, locating the relevant MRP line, and transcribing dates into a tracking sheet.
+The behavior described below is based on the external workbook review documented in APPLICATION_ANALYSIS.md. The implementation artifact is not currently included for independent source-code review.
 
-## Key features
+## Business problem
 
-- Excel-driven batch input: reads material numbers from column A and MRP areas from column B.
-- SAP GUI integration: uses the running SAP GUI Scripting engine through late-bound COM objects.
-- Automated MD03 execution: enters the material, MRP area, and plant/MRP-area value before submitting the transaction.
-- Automated MD04 navigation: opens the material stock/requirements list and applies the configured list filter.
-- Targeted MRP search: checks up to 20 rows for an MRP element containing PLA.OR.
-- First valid date capture: ignores blank dates and stops at the first nonblank date associated with the target element.
-- Excel result writing: writes the extracted date or Not Found to column C.
-- Progress completion message: reports the number of processed rows after the loop completes.
-- Workbook control: includes a rounded MD04 shape assigned to the SAP_Final_Solution macro.
-- Filterable worksheet: the input/output range has standard Excel filtering enabled.
-- Duplicate-value highlighting: the workbook contains duplicate-value conditional formatting rules, mainly around material-number ranges.
+A materials-planning user may need to open SAP transactions repeatedly for many materials, enter the same material and MRP-area values, locate a relevant MRP element, read a date, and transcribe the result into Excel.
 
-## Application workflow
+This is repetitive, time-sensitive work that can be affected by manual entry and inconsistent navigation.
 
-### 1. Prepare the Excel sheet
+## Automation objective
 
-On Sheet1, use the following columns:
+The documented automation uses Excel as an input/output control sheet and SAP GUI Scripting to process a batch of material records. For each nonblank material row, it is designed to:
 
-| Column | Header | Purpose |
-| --- | --- | --- |
-| A | Material Number | SAP material to process |
-| B | MRP AREA | MRP area and plant value passed to SAP |
-| C | Release Date | Output written by the macro |
-| D | Comments | Optional user-maintained status or notes; the macro does not populate it |
+1. Connect to an existing authenticated SAP GUI session.
+2. Run SAP transaction MD03 with the material and MRP-area values.
+3. Open SAP transaction MD04 for the material.
+4. Apply a recorded SAP list filter.
+5. Search the visible MRP table for an element containing PLA.OR.
+6. Capture the first associated nonblank date.
+7. Write the result to the Excel Release Date column.
+8. Write Not Found when no qualifying date is identified.
 
-The macro starts at row 2 and determines the final loop row from the last nonblank cell in column A. Blank material cells are skipped.
+This project does not create purchase orders, send supplier emails, or communicate with external parties.
 
-### 2. Connect to SAP
+## Documented workflow
 
-The macro looks for SAPGUI, obtains the scripting engine, and selects the first available connection and first session. SAP Logon must already be open, and the user must already be logged in to a session that is authorized to run the required transactions.
+| Stage | Input | Processing | Output |
+| --- | --- | --- | --- |
+| Excel preparation | Material Number and MRP AREA | Read rows beginning at row 2 | Batch input |
+| SAP setup | Existing SAP GUI session | Obtain the scripting engine and select a session | Automation context |
+| MD03 | Material and MRP area | Enter fields and submit the transaction | SAP planning screen |
+| MD04 | Material | Open the stock/requirements list and apply the recorded filter | Filtered MRP table |
+| MRP search | Visible table rows | Find PLA.OR and the first nonblank associated date | Candidate result |
+| Excel update | Candidate result | Write to column C | Release Date or Not Found |
+| Cleanup | Completed batch | Return SAP to /N and release objects | Completion message |
 
-### 3. Run MD03
+A more detailed workflow is available in docs/application-workflow.md.
 
-For each material, the macro navigates to /NMD03, enters the material number, MRP area, and plant/MRP-area value, and submits the screen.
+## Documented implementation scope
 
-### 4. Run MD04 and apply the filter
+The external workbook analysis reports:
 
-The macro navigates to /NMD04, enters the material number, submits the screen, and applies the recorded filter through SAP GUI control IDs. The filter key used in the code is SAP00001.
+- One substantive VBA procedure named SAP_Final_Solution.
+- One worksheet named Sheet1.
+- Input columns for Material Number and MRP AREA.
+- Release Date output in column C.
+- A clickable MD04 worksheet shape.
+- Late-bound SAP GUI objects.
+- A maximum scan of 20 MRP table rows per material.
+- No UserForm, report sheet, structured error log, or retry queue.
 
-### 5. Inspect the MRP table
+These points are documented observations, not claims that source code is currently present in this repository.
 
-The macro reads the SAP table tblSAPMM61RTC_EZ. It uses the visible-row count and vertical scrollbar position to inspect at most 20 table rows. It reads the MRP element from DELB0, checks whether the text contains PLA.OR, then reads the associated date from DAT02.
+## Requirements for a future sanitized demo
 
-### 6. Write the result
+A functional demonstration would require:
 
-The first nonblank matching date is written to column C. If no matching nonblank date is found, the initial value Not Found remains in the cell.
+- Windows.
+- Microsoft Excel Desktop with macro support.
+- SAP GUI for Windows.
+- SAP GUI Scripting enabled and permitted by the SAP system.
+- An authenticated SAP session with appropriate authorization.
+- A sanitized workbook and synthetic input values.
 
-### 7. Clean up
+The automation is not designed for Excel for the web, Excel for Mac, or SAP environments with incompatible screen layouts and control IDs.
 
-After processing, the macro returns SAP to /N, releases its object variables, and displays an Automation Complete message.
+## Safe setup and usage
 
-## Technical details
+When a sanitized workbook is approved for publication:
 
-### Languages and technologies
+1. Use synthetic material numbers and non-production MRP-area values.
+2. Open SAP GUI and log in only to an approved non-production or test environment.
+3. Open the sanitized workbook in Excel Desktop.
+4. Keep the intended input sheet active.
+5. Populate Material Number and MRP AREA beginning in row 2.
+6. Review the rows before running.
+7. Run SAP_Final_Solution only after confirming the SAP session and target environment.
+8. Review Release Date results and investigate Not Found values manually.
 
-- Visual Basic for Applications (VBA)
-- Excel Open XML workbook format with macros (.xlsm)
-- SAP GUI Scripting API
-- COM automation through late-bound Object variables
-- Excel worksheet controls, shapes, AutoFilter, and conditional formatting
+Do not upload or use a production workbook as a portfolio artifact. Do not disable Office security globally. See docs/setup-and-troubleshooting.md.
 
-### VBA project components
+## Error handling and operational safeguards
 
-| Component | Current implementation |
-| --- | --- |
-| Module1 | Contains the SAP_Final_Solution procedure and all SAP automation logic |
-| Module2 | Present but empty |
-| ThisWorkbook | Contains generated component attributes only; no workbook event procedure was found |
-| Sheet1 | Contains generated component attributes only; no worksheet event procedure was found |
-| UserForms | None found |
+The documented implementation has important limitations:
 
-The workbook contains standard stdole and Office object-library references. The SAP objects are declared as Object, so a separate compile-time SAP reference is not required by the code.
+- It may select the first available SAP connection and session.
+- SAP control IDs are hard-coded and may vary by system, version, or screen variant.
+- A fixed one-second wait may be too short for a slow SAP response.
+- On Error Resume Next can hide some UI errors.
+- A target row after the first 20 inspected rows may not be found.
+- Not Found can represent several different conditions, including missing data, a layout mismatch, or a recoverable UI error.
+- The completion count may reflect row positions rather than successful nonblank records.
+- MD03 may affect planning results, so production use requires authorization, testing, and operational controls.
 
-### Workbook structure observed
+## Security and data handling
 
-- One visible worksheet: Sheet1
-- Four working columns: Material Number, MRP AREA, Release Date, and Comments
-- No worksheet formulas were found
-- No Excel tables, charts, or embedded images were found
-- One drawing shape is linked to SAP_Final_Solution
-- The saved workbook has an active AutoFilter and hidden rows reflecting a prior filtered view
-
-## Business benefits
-
-- Reduces repetitive SAP navigation and data entry.
-- Processes multiple material records from one Excel control sheet.
-- Applies the same MRP search method consistently for each material.
-- Reduces manual transcription of dates from SAP to Excel.
-- Provides a standard Not Found result when the expected qualifying date is unavailable.
-- Keeps the output in a familiar Excel format that can be filtered and reviewed.
-
-These are workflow benefits inferred from the implemented logic. The workbook does not contain measured time-savings, error-rate, or throughput metrics.
-
-## Requirements
-
-- Windows desktop environment
-- Microsoft Excel Desktop with VBA and macro-enabled workbook support
-- SAP GUI for Windows
-- SAP GUI Scripting enabled on the client and permitted by the SAP system
-- An active, authenticated SAP connection and session
-- User authorization for the SAP transactions and fields used by the script
-
-This application is not designed for Excel for the web, Excel for Mac, or an SAP session that exposes a different screen layout or control IDs.
-
-## Installation and setup
-
-1. Clone or download the repository.
-2. Use a trusted local copy of the macro-enabled workbook.
-3. If the workbook is distributed as a portfolio sample, use sanitized demo data and remove organization-specific metadata before opening it.
-4. Install or open SAP GUI for Windows and sign in to the intended SAP environment.
-5. Confirm that SAP GUI Scripting is available and that the required transactions can be run manually.
-6. Open the .xlsm file in Excel Desktop.
-7. Keep Sheet1 active and populate columns A and B starting at row 2.
-8. Review the material list before running. The macro processes rows through the last nonblank cell in column A, including rows that are hidden by an Excel filter.
-9. Run the SAP_Final_Solution macro from the MD04 worksheet button or from Developer → Macros.
-10. Review the Release Date column and investigate any Not Found results in SAP.
-
-Do not disable Office security globally. Use a trusted, sanitized copy and enable macros only when the workbook and SAP environment are known to be safe.
-
-## Usage example
-
-Example input layout:
-
-    Material Number | MRP AREA | Release Date | Comments
-    DEMO-001        | 1800     |              |
-    DEMO-002        | 1800     |              |
-
-After the run, column C is populated with the first matching nonblank date returned from SAP or with Not Found.
-
-## Current limitations and operational safeguards
-
-- The code uses the first SAP connection and first SAP session (Children(0)). Close unrelated SAP sessions or confirm the session order before running.
-- The code uses ThisWorkbook.ActiveSheet, so the intended input sheet must be active.
-- The SAP screen paths and control IDs are hard-coded. SAP screen variants, upgrades, or customizations may require code updates.
-- Only the first 20 rows of the SAP MRP table are inspected for each material.
-- Not Found can represent a missing target element, a blank target date, an unexpected SAP layout, or a recoverable lookup error.
-- Several SAP reads are wrapped in On Error Resume Next, so some UI errors may be silently bypassed.
-- The macro contains a one-second wait before reading the MRP table, which may be insufficient for a slow SAP connection.
-- The completion count is based on lastRow - 1, not the number of nonblank material rows actually processed.
-- The macro does not create a detailed execution log, retry failed materials, validate input fields, or write an error summary.
-- Running MD03 may change planning results in SAP. Test in a non-production environment before operational use.
-
-## Suggested repository structure
-
-    sap-md04-mrp-automation/
-    ├── README.md
-    ├── LICENSE
-    ├── docs/
-    │   ├── application-workflow.md
-    │   ├── setup-and-troubleshooting.md
-    │   └── screenshots/
-    ├── src/
-    │   └── vba/
-    │       ├── Module1.bas
-    │       ├── Module2.bas
-    │       ├── Sheet1.cls
-    │       └── ThisWorkbook.cls
-    ├── sample-data/
-    │   └── input-template.xlsx
-    └── workbook/
-        └── sanitized-demo.xlsm
-
-### Recommended GitHub contents
-
-- README.md and supporting documentation
-- Exported VBA modules after removing sensitive comments, identifiers, and environment-specific values
-- A blank or synthetic input template
-- Redacted screenshots
-- A sanitized demo workbook only if it cannot connect to a real company system
-- License and contribution files if the project will be shared publicly
-
-### Do not upload
-
-- The original production workbook with real material numbers, MRP areas, dates, or comments
-- A workbook containing an absolute company SharePoint/OneDrive path
-- SAP logon details, connection strings, credentials, tokens, or screenshots showing system/client/user information
-- The embedded VBA project binary if it contains proprietary code or project-protection metadata
-- Real supplier, customer, employee, or procurement records
-
-## Screenshot recommendations
-
-Use synthetic values and redact all SAP and company identifiers.
-
-1. Excel input screen: show the four-column layout and the MD04 button.
-2. SAP MD03 screen: show the material, MRP area, and plant fields with demo values.
-3. SAP MD04 list: show the target PLA.OR line and its date, with system and material identifiers redacted.
-4. Completed Excel output: show populated dates and a Not Found example.
-5. Completion message: show the macro completion dialog without real counts or business identifiers.
-
-## Implemented features versus future improvements
-
-### Implemented
-
-- Excel-to-SAP batch processing
-- MD03 execution per input row
-- MD04 navigation and recorded list filtering
-- Controlled scan of MRP table rows
-- PLA.OR matching and first nonblank date extraction
-- Excel output writing and completion notification
-- Basic defensive handling for missing SAP objects and optional SAP controls
-
-### Future improvements
-
-- Add a configuration sheet for SAP transaction parameters, filter keys, scan limits, and wait times.
-- Replace On Error Resume Next with explicit error handling and a per-material error log.
-- Validate material numbers and MRP areas before starting SAP automation.
-- Support reliable pagination or full-table scanning beyond 20 rows.
-- Detect and select a named SAP connection/session instead of using Children(0).
-- Add a dry-run mode and a test mode using a mock SAP response.
-- Separate the SAP automation layer from the Excel input/output layer.
-- Add a progress indicator, cancellation control, and resumable processing.
-- Preserve true Excel date values and standardize date parsing.
-- Add automated tests for parsing, output mapping, and failure states.
-
-## Resume and portfolio description
-
-Built an Excel VBA and SAP GUI Scripting automation tool that batch-processes material/MRP-area inputs, runs SAP MD03 and MD04, searches MRP rows for PLA.OR, extracts the first valid related date, and writes standardized results back to Excel with completion and exception handling.
-
-## License and data-use note
-
-Add a license appropriate to the code owner and organization. This repository should contain synthetic or redacted data only. The automation is intended for demonstration and controlled internal use unless it is validated against the target SAP environment.
+The public repository must contain documentation, synthetic values, and redacted screenshots only.
+
+Never publish:
+
+- Real material numbers, MRP areas, plants, dates, or comments.
+- SAP system, client, user, or connection identifiers.
+- Credentials, tokens, connection strings, or passwords.
+- Supplier, customer, employee, or procurement records.
+- Original workbook metadata containing organization-specific paths.
+- Proprietary VBA project binaries without authorization.
+
+The current published Markdown files do not contain a runnable workbook or known credentials. This does not replace an organizational data-classification review.
+
+## Testing status
+
+No automated tests or runnable implementation are currently included. Excel, VBA, SAP GUI, and external-system execution has not been validated from this repository.
+
+Future tests should cover:
+
+- Input validation.
+- MRP-element/date matching.
+- Result mapping to Excel rows.
+- Missing controls and timeout states.
+- Mocked SAP responses without connecting to production.
+
+## Benefits supported by the documented workflow
+
+The automation is intended to reduce repetitive SAP navigation and manual date transcription, process multiple material records consistently, and keep results in a familiar Excel format.
+
+No measured time savings, throughput figures, or error-rate improvements are claimed because the repository contains no measurement evidence.
+
+## Known limitations
+
+This is a Windows desktop automation concept that depends on SAP GUI screen structure, user authorization, SAP GUI Scripting settings, and workbook state. It is not a standalone SAP API integration and is not production-ready based on the current published repository.
+
+## Planned improvements
+
+- Publish redacted VBA source only after confidentiality review.
+- Add a sanitized workbook or input template.
+- Select SAP sessions explicitly rather than by position.
+- Replace broad error suppression with scoped handling and per-row status logging.
+- Add configurable timeouts, scan limits, and SAP parameters.
+- Add validation, retry, cancellation, and resumable processing.
+- Add mocked tests and redacted screenshots.
+- Add release notes for validated portfolio versions.
+
+## Recruiter summary
+
+Built an Excel VBA and SAP GUI Scripting automation concept for procurement and materials-planning operations. The workflow processes material/MRP-area inputs, navigates SAP MD03 and MD04, identifies relevant PLA.OR planning elements, extracts the first available date, and writes standardized results back to Excel. The project demonstrates SAP process knowledge, spreadsheet automation, batch processing, operational risk awareness, and responsible handling of business data.
+
+## License
+
+This repository uses a portfolio-use, all-rights-reserved notice. The materials are not an authorization to copy or deploy the automation in a production environment.
