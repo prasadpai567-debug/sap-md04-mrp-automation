@@ -6,10 +6,14 @@ Excel VBA and SAP GUI Scripting portfolio project for batch extraction of select
 
 ## Repository status
 
-The current public repository is documentation-only. It contains:
+The published repository contains project documentation plus repository hygiene files:
 
 - README.md
 - APPLICATION_ANALYSIS.md
+- docs/application-workflow.md
+- docs/setup-and-troubleshooting.md
+- LICENSE
+- .gitignore
 
 The original macro-enabled workbook, exported VBA modules, screenshots, and operational data are intentionally not published here. Cloning the repository alone does not provide a runnable application.
 
